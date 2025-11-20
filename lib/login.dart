@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_iuran/bottom.dart';
-import 'package:flutter_iuran/api.dart';
-
+import 'package:flutter_iuran/home.dart';
+import 'package:flutter_iuran/service/login.service.dart';
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -10,107 +9,62 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-  bool _isPasswordVisible = false;
+  final emailC = TextEditingController();
+  final passC = TextEditingController();
+  bool loading = false;
+
+  void _login() async {
+    setState(() => loading = true);
+
+    try {
+      final result = await LoginService().login(emailC.text, passC.text);
+
+      String token = result['token'];
+      int userId = result['user']['id'];
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HomePage(
+            token: token,
+            userId: userId,
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Login gagal: $e")),
+      );
+    }
+
+    setState(() => loading = false);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 60),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                color: const Color.fromARGB(255, 255, 255, 255),
-              ),
-              width: double.infinity,
-              height: 500,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const FlutterLogo(
-                      size: 100,
-                    ),
-                    const Text('Iuran Warga', style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 30,
-                      fontStyle: FontStyle.italic
-                    ),),
-                    SizedBox(height: 30,),
-                    TextFormField(
-                      decoration: InputDecoration(
-                        hintText: 'Masukkan Username',
-                        hintStyle: TextStyle(
-                          color: Colors.black,
-                        ),
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.person)
-                      ),
-                    ),
-                    const SizedBox(height: 20,),
-                    TextFormField(
-                      obscureText: !_isPasswordVisible,
-                      decoration: InputDecoration(
-                        hintText: 'Masukkan Password',
-                        hintStyle: TextStyle(
-                          color: Colors.black,
-                        ),
-                        prefixIcon: Icon(Icons.lock),
-                        border: OutlineInputBorder(),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _isPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _isPasswordVisible = !_isPasswordVisible;
-                            });
-                          },
-                        )
-                      ),
-                      validator: (value) {
-                        if (value==null || value.isEmpty) {
-                          return 'Password tidak boleh kosong';
-                        }
-                        if (value.length < 6) {
-                          return 'Password harus 6 karakter';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 30,),
-                    Container(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)=> HomePage()), (route) => false);
-                        },
-                        child: Text('Login', style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),),
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(
-                          color: Colors.black
-                        ),
-                        color: Colors.white,
-                      ),
-                    )
-                  ],
-                ),
-              ),
+    return Scaffold(
+      appBar: AppBar(title: const Text("Login")),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            TextField(
+              controller: emailC,
+              decoration: const InputDecoration(labelText: "Email"),
             ),
-          ),
+            TextField(
+              controller: passC,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "Password"),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: loading ? null : _login,
+              child: loading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text("Login"),
+            )
+          ],
         ),
       ),
     );
